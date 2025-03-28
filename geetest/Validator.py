@@ -1,8 +1,7 @@
-import functools
 import time
 from abc import ABC, abstractmethod
 
-import bili_ticket_gt_python
+from util.dynimport import bili_ticket_gt_python
 
 
 class Validator(ABC):
@@ -17,8 +16,6 @@ class Validator(ABC):
     @abstractmethod
     def need_api_key(self) -> bool:
         pass
-
-
 
 
 def test_validator(validator, n=100, click=bili_ticket_gt_python.ClickPy()):
