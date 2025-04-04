@@ -3,16 +3,16 @@ import json
 import subprocess
 import sys
 import time
+import uuid
 from datetime import datetime
 from json import JSONDecodeError
 from urllib.parse import urlencode
-
-import playsound
+from playsound3 import playsound
 import qrcode
 import retry
 from loguru import logger
 from requests import HTTPError, RequestException
-
+import shutil
 from util import PushPlusUtil, ServerChanUtil
 from util.BiliRequest import BiliRequest, format_dictionary_to_string
 from util.dynimport import bili_ticket_gt_python
@@ -112,7 +112,7 @@ def buy(tickets_info_str, time_start, interval, mode, total_attempts, timeoffset
                     url=f"https://show.bilibili.com/api/ticket/order/createV2?project_id={tickets_info['project_id']}",
                     data=payload, ).json()
                 err = int(ret["errno"])
-                logger.info(f'状态码: {err}({ERRNO_DICT.get(err, "未知错误码")}), 请求体: {ret}')
+                logger.info(f'状态码: {err}({ERRNO_DICT.get(err, "未知错误码")}), 响应: {ret}')
                 if err == 100034:
                     logger.info(f'更新票价为：{ret["data"]["pay_money"] / 100}')
                     tickets_info["pay_money"] = ret["data"]["pay_money"]
@@ -128,7 +128,7 @@ def buy(tickets_info_str, time_start, interval, mode, total_attempts, timeoffset
             request_result, errno = inner_request()
             left_time_str = "无限" if mode == 0 else left_time
             logger.info(
-                f'状态码: {errno}({ERRNO_DICT.get(errno, "未知错误码")}), 请求体: {request_result} 剩余次数: {left_time_str}')
+                f'状态码: {errno}({ERRNO_DICT.get(errno, "未知错误码")}), 响应: {request_result} 剩余次数: {left_time_str}')
             if errno == 0:
                 logger.info(f"3）抢票成功")
                 qrcode_url = get_qrcode_url(_request, request_result["data"]["orderId"], )
@@ -142,7 +142,7 @@ def buy(tickets_info_str, time_start, interval, mode, total_attempts, timeoffset
                 if serverchanKey is not None and serverchanKey != "":
                     ServerChanUtil.send_message(serverchanKey, "抢票成功", "前往订单中心付款吧")
                 if audio_path != "":
-                    playsound.playsound(audio_path)
+                    playsound(audio_path)
                 break
             if mode == 1:
                 left_time -= 1
@@ -185,5 +185,7 @@ def buy_new_terminal(tickets_info_str, time_start, interval, mode, total_attempt
 
     if sys.platform == "win32":
         subprocess.Popen(command, creationflags=subprocess.CREATE_NEW_CONSOLE)
+    elif sys.platform == "linux":
+        logger.warning("当前系统未实现终端启动功能")
     else:
         logger.warning("当前系统未实现终端启动功能")
